@@ -23,6 +23,7 @@ module STLViewer {
     var clickObject = [];
     const manager = new THREE.LoadingManager();
     var startTime, endTime;
+    var bRenderStop = false;
 
     export class Application {
         static run() {
@@ -645,18 +646,28 @@ module STLViewer {
 
             manager.onStart = function (url, itemsLoaded, itemsTotal)
             {
+                bRenderStop = true;
+                document.body.style.cursor = 'wait';
                 console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-                //在時刻を示すDate.nowを代入
                 startTime = performance.now();
+            };
+
+            manager.onProgress = function (url, loaded, total)
+            {
+
             };
 
             manager.onLoad = function ()
             {
+                document.body.style.cursor = '';
                 console.log('Loading complete!');
                 endTime = performance.now();
                 const elapsed = (endTime - startTime);
                 const elapsedStr = elapsed.toFixed(3);
                 window.confirm('実行時間 = ' + elapsedStr + 'ミリ秒');
+
+                bRenderStop = false;
+                render();
             };
 
             function readTextFile(file): string
@@ -710,6 +721,10 @@ module STLViewer {
             // 毎フレーム時に実行されるループイベントです
             function render()
             {
+                if (bRenderStop) {
+                    return;
+                }
+
                 requestAnimationFrame(render);
 
                 if (planeObjects && planeObjects.length > 0) {
