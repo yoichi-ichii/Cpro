@@ -52,5 +52,5 @@ jobs:
         with:
           app-name: 'cpro-sample'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_94496E3068144A28AC2C6BB54C2DC20B }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_18269BEE6F8240AF8CF6D63FB30244F5 }}
           package: .
