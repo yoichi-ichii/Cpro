@@ -50,7 +50,7 @@ module STLViewer {
                 camera.target = new THREE.Vector3();
 
                 orbitControls = new OrbitControls(camera, renderer.domElement);
-                orbitControls.minDistance = 1;
+                orbitControls.minDistance = -10000;
                 orbitControls.maxDistance = 10000;
 
                 scene.add(new THREE.AmbientLight(0x666666));
@@ -63,7 +63,7 @@ module STLViewer {
                 light.position.set(-1, 0.75, -0.5);
                 scene.add(light);
 
-                drawGround();
+                //drawGround();
 
                 // NOTE: Setup Plane
                 planes = [
@@ -200,18 +200,20 @@ module STLViewer {
             {
                 var objects = object.children.filter(item => item.name === "frontMesh");
                 if (bDisassemble) {
+                    var size = new THREE.Vector3();
                     const boundingBox = new THREE.Box3();
                     for (var cI = 0; cI < objects.length; cI++) {
                         if (0 === cI) {
+                            boundingBox.getSize(size);
                             continue;
                         }
 
                         var mesh = objects[cI];
+                        var boxsize = new THREE.Vector3();
+                        boundingBox.getSize(boxsize);
+                        size.y -= (boxsize.y + 5.0);
 
-                        var size = new THREE.Vector3();
-                        boundingBox.getSize(size);
-
-                        mesh.position.set(0.0, size.y - 5.0, 0.0);
+                        mesh.position.set(0.0, size.y, 0.0);
                         boundingBox.setFromObject(mesh);
                     }
                 }
