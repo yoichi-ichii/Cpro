@@ -4,15 +4,12 @@
     "noEmitOnError": true,
     "removeComments": false,
     "sourceMap": true,
-    "target": "ES2020",
-    "module": "ES2020",
+    "target": "ES2015",
+    "module": "ES2015",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     //"allowJs": true, // *.d.tsê∂ê¨óp
     //"declaration": true, //*.d.tsê∂ê¨óp
-    "types": [
-      "node"
-    ],
     "typeRoots": [
       "node_modules/@types"
     ],
@@ -26,8 +23,7 @@
   ],
   "exclude": [
     "node_modules",
-    "wwwroot",
-    "temp"
+    "wwwroot"
   ],
   "compileOnSave": true
 }

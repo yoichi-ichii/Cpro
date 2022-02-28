@@ -1,15 +1,15 @@
 ﻿/// <binding BeforeBuild='Run - Development' />
 const webpack = require('webpack');
+const path = require('path');
+const nodeExternals = require("webpack-node-externals");
+const FsWebpackPlugin = require('fs-webpack-plugin');
 
 module.exports = {
     // モード値を production に設定すると最適化された状態で、
     // development に設定するとソースマップ有効でJSファイルが出力される
     mode: "development",
-    devtool: "inline-source-map",
+    devtool: "source-map",
     entry: "./src/main.ts",
-    devServer: {
-        contentBase: './dist'
-    },
     // ファイルの出力設定
     output: {
         //  出力ファイルのディレクトリ名
@@ -22,13 +22,13 @@ module.exports = {
         rules: [
             {
                 test: /.ts$/,
-                loader: 'ts-loader'
+                use: 'ts-loader'
             },
         ]
     },
     // import 文で .ts ファイルを解決するため
     resolve: {
-        extensions: [".txs",".ts", ".js", ".json"]
+        extensions: [".ts", ".js", ".json"]
     },
     devtool: false,
     plugins: [
@@ -37,5 +37,7 @@ module.exports = {
             fallbackModuleFilenameTemplate: '[absolute-resource-path]',
             moduleFilenameTemplate: '[absolute-resource-path]'
         })
-    ]
+    ],
+    //target: 'node',
+    //externalsPresets: { node: true }, // in order to ignore built-in modules like path, fs, etc.
 };

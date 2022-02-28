@@ -16,8 +16,6 @@ var STLViewer;
     let gui, params, bTransparent, bCrosssection, bAnimation, bDisassemble;
     var raycaster, mouse;
     var clickObject = [];
-    const manager = new THREE.LoadingManager();
-    var startTime, endTime;
     class Application {
         static run() {
             try {
@@ -35,14 +33,14 @@ var STLViewer;
                 scene = new THREE.Scene();
                 raycaster = new THREE.Raycaster();
                 mouse = new THREE.Vector2();
-                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
                 camera.position.z = 100;
                 camera.position.y = 40;
                 camera.position.x = 60;
                 camera.target = new THREE.Vector3();
                 orbitControls = new OrbitControls(camera, renderer.domElement);
                 orbitControls.minDistance = 1;
-                orbitControls.maxDistance = 10000;
+                orbitControls.maxDistance = 1000;
                 scene.add(new THREE.AmbientLight(0x666666));
                 var light = new THREE.DirectionalLight(0xaaaaaa, 1);
                 light.position.set(1, 0.75, 0.5);
@@ -50,10 +48,9 @@ var STLViewer;
                 var light = new THREE.DirectionalLight(0xaaaaaa, 1);
                 light.position.set(-1, 0.75, -0.5);
                 scene.add(light);
-                drawGround();
                 // NOTE: Setup Plane
                 planes = [
-                    new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0),
+                    new THREE.Plane(new THREE.Vector3(0, 0, -1), 0),
                 ];
                 object = new THREE.Group();
                 //object.scale.set(10, 10, 10);
@@ -80,9 +77,6 @@ var STLViewer;
             catch (e) {
                 alert(e);
             }
-            function onDocumentMouseUp(event) {
-                event.preventDefault();
-            }
             function onClick(event) {
                 event.preventDefault();
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -94,22 +88,9 @@ var STLViewer;
                     if (objects && 0 < objects.length) {
                         var mesh = objects[0].object;
                         var children = mesh.children;
-                        var clear = false;
-                        if (clickObject && 0 < clickObject.length) {
-                            for (var cI = 0; cI < children.length; cI++) {
-                                var index = clickObject.findIndex(item => item.id === children[cI].id);
-                                if (-1 < index) {
-                                    clickObject[index].material.color.set(0x000000);
-                                    clickObject = clickObject.filter(item => item.id !== children[cI].id);
-                                    clear = true;
-                                }
-                            }
-                        }
-                        if (!clear) {
-                            for (var cI = 0; cI < children.length; cI++) {
-                                children[cI].material.color.set(0xFF0000);
-                                clickObject.push(children[cI]);
-                            }
+                        for (var cI = 0; cI < children.length; cI++) {
+                            children[cI].material.color.set(0xFF0000);
+                            clickObject.push(children[cI]);
                         }
                     }
                 }
@@ -324,9 +305,6 @@ var STLViewer;
                         return;
                     }
                     renderer.localClippingEnabled = bCrosssection;
-                    // Set up clip plane rendering
-                    planeObjects = [];
-                    var index = 0;
                     var children = object.children;
                     for (var cI = 0; cI < children.length; cI++) {
                         const frontmat = new THREE.MeshPhysicalMaterial({
@@ -371,12 +349,14 @@ var STLViewer;
                             }
                             children[cI] = frontMesh;
                             if (bCrosssection) {
+                                // Set up clip plane rendering
+                                planeObjects = [];
                                 var planeGeom = new THREE.PlaneBufferGeometry(1000, 1000);
                                 for (var i = 0; i < planes.length; i++) {
                                     var poGroup = new THREE.Group();
                                     poGroup.name = "poGroup";
                                     var plane = planes[i];
-                                    var stencilGroup = createPlaneStencilGroup(frontMesh.geometry, plane, i + 1 + index);
+                                    var stencilGroup = createPlaneStencilGroup(frontMesh.geometry, plane, i + 1);
                                     stencilGroup.name = "stencilGroup";
                                     // plane is clipped by the other clipping planes
                                     var planeMat = new THREE.MeshStandardMaterial({
@@ -398,7 +378,7 @@ var STLViewer;
                                     po.onAfterRender = function (renderer) {
                                         renderer.clearStencil();
                                     };
-                                    po.renderOrder = i + 1.1 + index;
+                                    po.renderOrder = i + 1.1;
                                     object.add(stencilGroup);
                                     poGroup.add(po);
                                     planeObjects.push(po);
@@ -406,8 +386,8 @@ var STLViewer;
                                 }
                             }
                             if (!bTransparent) {
-                                var findex = object.children.findIndex(item => item.name === "backMesh");
-                                if (-1 < findex)
+                                var index = object.children.findIndex(item => item.name === "backMesh");
+                                if (-1 < index)
                                     continue;
                                 var clippedColorBack = new THREE.Mesh(frontMesh.geometry, backmat);
                                 clippedColorBack.name = "backMesh";
@@ -416,7 +396,6 @@ var STLViewer;
                             else {
                                 frontMesh.children = frontMesh.children.filter(item => item.name !== "backMesh");
                             }
-                            index++;
                         }
                         backmat.onBeforeCompile = (shader) => {
                             const token = '#include <begin_vertex>';
@@ -425,6 +404,7 @@ var STLViewer;
                         };
                     }
                     if (!bCrosssection) {
+                        planeObjects = [];
                         object.children = object.children.filter(item => item.name !== "stencilGroup");
                         scene.children = scene.children.filter(item => item.name !== "poGroup");
                     }
@@ -466,16 +446,16 @@ var STLViewer;
                 return group;
             }
             function loadStlModel() {
-                const files = getFileList("stl");
+                const files = getFileList('GEAB1.5-12-15-K-8');
                 if (files && 1 > files.length) {
                     return false;
                 }
                 var index = 0;
-                var loader = new STLLoader(manager);
+                var loader = new STLLoader();
                 for (var cI = 0; cI < files.length; cI++) {
                     loader.load(files[cI], function (geometry) {
                         var tempGeometry = geometry.clone();
-                        //tempGeometry.computeTangents();
+                        tempGeometry.computeTangents();
                         tempGeometry.computeVertexNormals();
                         geometry = tempGeometry.clone();
                         const frontmat = new THREE.MeshPhysicalMaterial({
@@ -523,53 +503,60 @@ var STLViewer;
                         };
                         index++;
                     });
+                    //const promise = loader.loadAsync(files[cI]);
+                    //promise.then(function (geometry) {
+                    //    var tempGeometry = geometry.clone();
+                    //    tempGeometry = BufferGeometryUtils.mergeVertices(tempGeometry, 0.01);
+                    //    tempGeometry.computeVertexNormals();
+                    //    geometry = tempGeometry.clone();
+                    //    //var mesh = new THREE.Mesh(geometry);
+                    //    // add the front color
+                    //    var clippedColorFront = new THREE.Mesh(geometry, frontmat);
+                    //    clippedColorFront.name = "frontMesh";
+                    //    clippedColorFront.castShadow = true;
+                    //    clippedColorFront.renderOrder = 6;
+                    //    object.add(clippedColorFront);
+                    //    // add edge
+                    //    const thresholdAngle = 11;
+                    //    const edge = new THREE.EdgesGeometry(clippedColorFront.geometry, thresholdAngle);
+                    //    const line = new THREE.LineSegments(edge, edgeMat);
+                    //    line.name = "edge";
+                    //    clippedColorFront.add(line);
+                    //    // add the back color
+                    //    var clippedColorBack = new THREE.Mesh(geometry, backmat);
+                    //    clippedColorBack.name = "backMesh";
+                    //    object.add(clippedColorBack);
+                    //    console.log('STL file loaded!');
+                    //}).catch(failureCallback);
+                    //function failureCallback() {
+                    //    console.log('Could not load STL file!');
+                    //}
                 }
                 return true;
             }
-            manager.onStart = function (url, itemsLoaded, itemsTotal) {
-                console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-                //在時刻を示すDate.nowを代入
-                startTime = performance.now();
-            };
-            manager.onLoad = function () {
-                console.log('Loading complete!');
-                endTime = performance.now();
-                const elapsed = (endTime - startTime);
-                const elapsedStr = elapsed.toFixed(3);
-                window.confirm('実行時間 = ' + elapsedStr + 'ミリ秒');
-            };
-            function readTextFile(file) {
-                var allText;
-                var rawFile = new XMLHttpRequest(); // XMLHttpRequest (often abbreviated as XHR) is a browser object accessible in JavaScript that provides data in XML, JSON, but also HTML format, or even a simple text using HTTP requests.
-                rawFile.open("GET", file, false); // open with method GET the file with the link file ,  false (synchronous)
-                rawFile.onreadystatechange = function () {
-                    if (rawFile.readyState === 4) // readyState = 4: request finished and response is ready
-                     {
-                        if (rawFile.status === 200) // status 200: "OK"
-                         {
-                            allText = rawFile.responseText; //  Returns the response data as a string
-                            console.log(allText); // display text on the console
-                        }
-                    }
-                };
-                rawFile.send(null); //Sends the request to the server Used for GET requests with param null
-                return allText;
-            }
             function getFileList(dirPath) {
                 let dirList = new Array();
-                var text = readTextFile(dirPath + "/stl.txt");
-                var texts = text.split(/\n/);
-                for (var cI = 0; cI < texts.length; cI++) {
-                    dirList.push(dirPath + '/' + texts[cI]);
-                }
+                //var dirList = fs.readdirSync(dirPath, {
+                //    withFileTypes: true,
+                //});
+                //dirList = fs.readdirSync(dirPath, {
+                //    withFileTypes: true,
+                //}).filter(dirent => dirent.isFile() && -1 < dirent.name.indexOf('.stl'))
+                //    .map(dirent => dirent.name);
+                dirList.push(dirPath + "/GEAB1.5-12-15-K-8 - Set Screw-1_GEAB1.5-12-15-K-8-4.stl");
+                dirList.push(dirPath + "/GEAB1.5-12-15-K-8 - Spur Gear_GEAB1.5-12-15-K-8-2.stl");
+                //dirList = fs.readdirSync(dirPath, {
+                //    withFileTypes: true,
+                //}).filter(dirent => dirent.isFile() && -1 < dirent.name.indexOf('.stl'))
+                //    .map(dirent => dirent.name);
                 return dirList;
             }
             /**
              * 地面描画
              */
             function drawGround() {
-                //const gridHelper = new THREE.GridHelper(1000.0, 50.0);
-                //scene.add(gridHelper);
+                const gridHelper = new THREE.GridHelper(1000.0, 50.0);
+                scene.add(gridHelper);
                 const axesHelper = new THREE.AxesHelper(500.0);
                 scene.add(axesHelper);
             }
@@ -582,8 +569,8 @@ var STLViewer;
             function render() {
                 requestAnimationFrame(render);
                 if (planeObjects && planeObjects.length > 0) {
-                    var plane = planes[0];
                     for (var i = 0; i < planeObjects.length; i++) {
+                        var plane = planes[i];
                         var po = planeObjects[i];
                         plane.coplanarPoint(po.position);
                         po.lookAt(po.position.x - plane.normal.x, po.position.y - plane.normal.y, po.position.z - plane.normal.z);
@@ -608,7 +595,6 @@ var STLViewer;
                         //mesh.rotation.z = sec * (Math.PI / 4);
                         //mesh.rotateOnAxis(axis, sec * (Math.PI / 4));
                         //mesh.rotateOnAxis(axis, 0.05);
-                        children[cI] = mesh;
                     }
                 }
                 // レンダリング
