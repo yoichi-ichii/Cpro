@@ -6,6 +6,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import GUI from 'lil-gui';
+import { gsap } from "gsap";
+var ProgressBar = require("progressbar.js");
 
 window.addEventListener("DOMContentLoaded", () => {
     // アプリケーションの起動
@@ -13,7 +15,6 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 module STLViewer {
-    //let container;
     var container;
     let scene, camera, renderer, effect;
     let orbitControls;
@@ -24,6 +25,8 @@ module STLViewer {
     const manager = new THREE.LoadingManager();
     var startTime, endTime;
     var bRenderStop = false;
+    var bar;
+    var progress;
 
     export class Application {
         static run() {
@@ -270,7 +273,7 @@ module STLViewer {
                 fitCameraToSelection(camera, orbitControls, selection);
             }
 
-            function fitCameraToSelection(camera, controls, selection, fitOffset = 1.3)
+            function fitCameraToSelection(camera, controls, selection, fitOffset = 1.0)
             {
                 const size = new THREE.Vector3();
                 const center = new THREE.Vector3();
@@ -458,7 +461,7 @@ module STLViewer {
                             children[cI] = frontMesh;
 
                             if (bCrosssection) {
-                                var planeGeom = new THREE.PlaneBufferGeometry(1000, 1000);
+                                var planeGeom = new THREE.PlaneBufferGeometry(10000, 10000);
                                 for (var i = 0; i < planes.length; i++) {
                                     var poGroup = new THREE.Group();
                                     poGroup.name = "poGroup";
@@ -646,21 +649,23 @@ module STLViewer {
 
             manager.onStart = function (url, itemsLoaded, itemsTotal)
             {
+                console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+
                 bRenderStop = true;
                 document.body.style.cursor = 'wait';
-                console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+
                 startTime = performance.now();
             };
 
             manager.onProgress = function (url, loaded, total)
             {
-
             };
 
             manager.onLoad = function ()
             {
-                document.body.style.cursor = '';
                 console.log('Loading complete!');
+
+                document.body.style.cursor = '';                
                 endTime = performance.now();
                 const elapsed = (endTime - startTime);
                 const elapsedStr = elapsed.toFixed(3);
@@ -668,6 +673,7 @@ module STLViewer {
 
                 bRenderStop = false;
                 render();
+                OnZoomToFit();
             };
 
             function readTextFile(file): string
@@ -747,28 +753,30 @@ module STLViewer {
 
                 if (bAnimation)
                 {
-                    var vec = new THREE.Vector3(0, 0, 1);
-                    var viewMatrix = camera.matrixWorldInverse;
-                    var axis = vec.applyMatrix4(viewMatrix);
-                    axis = axis.normalize();
+                    //var vec = new THREE.Vector3(0, 0, 1);
+                    //var viewMatrix = camera.matrixWorldInverse;
+                    //var axis = vec.applyMatrix4(viewMatrix);
+                    //axis = axis.normalize();
 
                     // ミリ秒から秒に変換
                     const sec = performance.now() / 1000;
 
-                    var children = object.children;
-                    for (var cI = 0; cI < children.length; cI++) {
-                        var mesh = children[cI];
+                    //var children = object.children;
+                    //for (var cI = 0; cI < children.length; cI++) {
+                    //    var mesh = children[cI];
 
-                        // 1秒で45°回転する
-                        //mesh.rotation.x = sec * (Math.PI / 4);
-                        mesh.rotation.y = sec * (Math.PI / 4);
-                        //mesh.rotation.z = sec * (Math.PI / 4);
+                    //    // 1秒で45°回転する
+                    //    //mesh.rotation.x = sec * (Math.PI / 4);
+                    //    mesh.rotation.y = sec * (Math.PI / 4);
+                    //    //mesh.rotation.z = sec * (Math.PI / 4);
 
-                        //mesh.rotateOnAxis(axis, sec * (Math.PI / 4));
-                        //mesh.rotateOnAxis(axis, 0.05);
+                    //    //mesh.rotateOnAxis(axis, sec * (Math.PI / 4));
+                    //    //mesh.rotateOnAxis(axis, 0.05);
 
-                        children[cI] = mesh;
-                    }
+                    //    children[cI] = mesh;
+                    //}
+
+                    camera.rotation.z += sec * (Math.PI / 4);
                 }
 
                 // レンダリング

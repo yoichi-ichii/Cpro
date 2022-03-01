@@ -29,7 +29,9 @@
     "@types/offscreencanvas": "2019.6.4",
     "html-webpack-plugin": "5.5.0",
     "webpack-dev-server": "4.7.4",
-    "worker-plugin": "5.0.1"
+    "worker-plugin": "5.0.1",
+    "gsap": "3.9.1",
+    "progressbar.js": "1.1.0"
   },
   "private": true
 }
